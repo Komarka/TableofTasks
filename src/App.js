@@ -1,180 +1,122 @@
 import React, { Component } from 'react';
 import "./App.css";
-import Select from './extra/Select/Select';
-import smallData from './data/smallData';
-import bigData from './data/bigData';
 import { TablePagination } from 'react-pagination-table';
+import sortTable from "./helpers/sortTable";
 class App extends Component {
+
 constructor(props) {
     super(props);
     this.state = {
-      data: '',
-      headers:''
-    };
+      data: [],
+      headers:['ID','Name','Task','Date','Delete']
+    }
+    this.getId=this.getId.bind(this);
+    
+  }
+
+checkClick(){
+  //define if the click was on <th> tag
+  let self=this;
+    window.onclick=function(e){
+      if(e.target.tagName==="TH" && e.target.textContent !=='Delete'){
+        sortTable(e.target.textContent);
+        }
+    }
 }
-//sending data
-	send(e){
-let select=e.target.previousSibling.children[1];
-let select_value= select.options[select.selectedIndex].value;
-let data=this.getData(select_value);
-let headers=data.shift();
-headers=Object.values(headers);//getting headers for the table
-
- this.setState({data,headers});
- e.target.parentNode.removeChild(e.target);
-  select.parentNode.removeChild(select);
 
 
-	}
 
-	checkClick(){
-		let self=this;
-		window.onclick=function(e){
-			if(e.target.tagName==="TD"){
-				let data=[];
-				let index=e.target.parentNode.rowIndex;
-                  let table=e.target.parentNode.parentNode.parentNode;
-                  let i=[...table.rows[index].cells];
-                 i.forEach((item)=>{
-                 	data.push(item.textContent);
-                 })
-
-                 let result=document.getElementById('result');
-                 result.innerHTML=`This row has following values: ${data.join(', ')}`;
-
-							}else if(e.target.tagName==="TH"){
-
-								self.sortTable(e.target.textContent);
-							}
-		}
-	}
-
-	sortTable(name){
-		let table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
-		let n='';
-		if(name==='Идентификатор'){
-			n=0;
-		}else if(name==='Название'){
-			n=1;
-		}else if(name==='Стоимость'){
-			n=2;
-		}else if(name==='Количество'){
-			n=3;
-		}
-		table = document.getElementsByTagName("table")[0];
-  switching = true;
-  dir = "asc"; 
  
-  while (switching) {
-  
-    switching = false;
-    rows = table.getElementsByTagName("TR");
-   
-    for (i = 1; i < (rows.length - 1); i++) {
-     
-      shouldSwitch = false;
-     
-      x = rows[i].getElementsByTagName("TD")[n];
-      y = rows[i + 1].getElementsByTagName("TD")[n];
-     
-      if (dir == "asc") {
-        if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
-          
-          shouldSwitch = true;
-          break;
-        }
-      } else if (dir == "desc") {
-        if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
-     
-          shouldSwitch = true;
-          break;
-        }
-      }
-    }
-    if (shouldSwitch) {
-     
-      rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
-      switching = true;
-     
-      switchcount ++; 
-    } else {
-      
-      if (switchcount == 0 && dir == "asc") {
-        dir = "desc";
-        switching = true;
-      }
-    }
-  }
-
-	}
 
 
-	//getting data from server
-	getData(type='s'){
-		let data='';
-		if(type==='s'){
-data=smallData();
-		}else if(type==='b'){
-			data=bigData();
-		}else if(type==='m'){
-			data=smallData();
-		}
+//add task
+ addTask(e){
+  let obj={};
+  let error='';
+  let form=e.target.parentNode;
+  let fields=[...form.children];
+  fields.forEach((item)=>{
+  if(item.id==='add' ){return;}//skip submit button
+  if(item.value==''){error="Fill the fields";}  //check if the fields are not empty
 
-		return data;
-	}
+  obj[item.id]=item.value;
+ 
 
-	find(event){
-let input, filter, table, tr, td, i;
-  input = document.getElementById("myInput");
-  filter = event.target.value;
-  table = document.getElementsByTagName("table")[0];
-  tr = table.getElementsByTagName("tr");
+  })
 
-  for (i = 0; i < tr.length; i++) {
-    td = tr[i].getElementsByTagName("td")[0];
-    if (td) {
-      if (td.innerHTML.toUpperCase().indexOf(filter) > -1) {
-        tr[i].style.display = "";
-      } else {
-        tr[i].style.display = "none";
-      }
-    } 
-  }
-	}
+ let data=this.state.data;
+ if(!error){
+   obj['id']=this.getId();// generate id 
+   obj['delete']=<button className='btn btn-danger' onClick={(e) => this.deleteTask(e)}>Delete</button>;
+   data.push(obj);//fill the object into the array
+}
+console.log(this.state.data);
+return error ? alert(error) : this.setState({data});
+ }
+
+
+getId(){
+ if( typeof document.getElementsByTagName("table")[0]==='undefined'){
+  return 1;
+ }else{
+  return document.getElementsByTagName("table")[0].rows.length;
+ }
+}
+
+
+deleteTask(e){
+  //check if there are no elements in the table
+  if(e.target.parentNode.parentNode.parentNode.parentNode.rows.length===2){
+   let data=[];
+   this.setState({data});
+ }
+   e.target.parentNode.parentNode.parentNode.removeChild(e.target.parentNode.parentNode);
+
+}
+
+
 
 render(){
-	console.log(this.state);
+  let mystyles={
+    marginTop:'10px'
+  }
+  //check if there is some data
 let{data,headers}=this.state;
-let table='';
-if(data !=='' && headers !==''){
-	 table= <div>Search:<input type='text' onChange={this.find} />
- <p></p><TablePagination
-            
-            subTitle="Table for Mauris"
-            data={ data }
-            headers={ headers }
-            columns="id.name.price.quantity"
-             perPageItemCount={ 5 }
-            totalCount={ data.length }
-             arrayOption={[]}
-             paginationClassName='pagination'
+//build table using react-pagination-table
+let tasks=  data.length===0 ?  <p>There is no tasks</p>
+:
+<TablePagination
+           subTitle="Table of Tasks"
+           data={ data }
+           headers={ headers }
+           columns="id.name.task.date.delete"
+           perPageItemCount={ 5 }
+           totalCount={ data.length }
+           arrayOption={[]}
+           paginationClassName='pagination'
             
         />
-        </div>
-}else{
-	table=<span></span>
-}
-	return <div className='hideOverflow'>
- <Select/>
- <button onClick={(e) => this.send(e)}className="btn btn-success">Send</button>
 
- {table}
- <span id='result'></span>
-      {this.checkClick()}
-     </div>   
-      }
- 
+//build DOM
+return <div className='container'>
+<div className="input-group">
+
+<input type="text" id='name' className="form-control" placeholder="Enter your name" />
+<input type="text" id='task' className="form-control" placeholder="Enter your task" />
+<input type="date" id='date' className="form-control"  />
+<p></p>
+<button  className='btn btn-success' style={mystyles} id='add' onClick={(e) => this.addTask(e)}>Add Task</button>
+</div>
+<p></p>
+
+{tasks}
+{this.checkClick()}
+</div>
+
+ }
 }
+
+
 
 
             
